@@ -1,19 +1,10 @@
-# Core LangChain packages
-langchain
-langchain-ollama
-langchain-huggingface
-langchain-community
-langchain-core
+gradio>=6.0
+langchain>=0.1.0   # Core LangChain library
+langchain_community>=0.1.0
+langchain_text_splitters>=0.0.1
+langchain_huggingface>=0.1.0
+langchain_ollama>=0.1.0
+faiss-cpu>=1.7.4    # FAISS vector store
+sentence-transformers>=2.2.2   # For HuggingFace embeddings
+torch>=2.0.0        # Required for sentence-transformers
 
-# Embeddings & Transformers
-sentence-transformers
-transformers
-
-# Vector database
-faiss-cpu
-
-# Frontend
-gradio
-
-# Optional: if you need PDF loading support
-PyPDF2
