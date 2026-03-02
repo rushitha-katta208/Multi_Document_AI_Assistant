@@ -1,13 +1,26 @@
 # Smart PDF QA Bot
 
-This project is a **PDF-based Question Answering Bot** built with Python and Gradio.  
+A **PDF-based Question Answering Bot** built with Python and Gradio.  
 Users can upload PDF files and ask questions; the bot provides accurate answers based on the PDF content.
 
-## Files
-- `app.py` – Main Gradio interface
-- `backend.py` – PDF processing & QA logic
-- `requirements.txt` – Python dependencies
 
-## How to Run
-1. Install dependencies: `pip install -r requirements.txt`
-2. Run the app: `python app.py`
+
+## 🚀 Key Features
+- Upload PDF files and ask questions interactively.
+- Uses **RAG (Retrieval-Augmented Generation)** to fetch relevant content from PDFs.
+- Powered by **LLM (Large Language Model)** via **LangChain** for natural language understanding.
+- Web-based interface built with **Gradio** – simple and user-friendly.
+
+
+
+## 🛠️ Technologies Used
+- **Python 3.10+**  
+- **LangChain** – To build the QA workflow  
+- **RAG (Retrieval-Augmented Generation)** – For retrieving relevant PDF content  
+- **LLM (Large Language Model)** – Generates answers to user questions  
+- **Gradio** – Web interface  
+- **FAISS / Vector Store** – Optional, for storing embeddings of PDF content  
+
+
+
+
