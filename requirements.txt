@@ -1,0 +1,19 @@
+# Core LangChain packages
+langchain
+langchain-ollama
+langchain-huggingface
+langchain-community
+langchain-core
+
+# Embeddings & Transformers
+sentence-transformers
+transformers
+
+# Vector database
+faiss-cpu
+
+# Frontend
+gradio
+
+# Optional: if you need PDF loading support
+PyPDF2
