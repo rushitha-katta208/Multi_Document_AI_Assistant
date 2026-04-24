@@ -1,6 +1,6 @@
 import gradio as gr
 
-# LangChain imports (kept grouped as requested)
+# LangChain imports
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -13,7 +13,7 @@ app_state = {
     "vector_store": None
 }
 
-llm_cache = None  # avoid recreating LLM every message
+llm_cache = None
 
 
 # --- PROCESS PDF ---
@@ -45,7 +45,7 @@ def process_pdf(file, api_key):
         return f"⚠ Error: {str(e)}"
 
 
-# --- CHAT / PREDICTION ---
+# --- CHAT ---
 def predict(message, history, api_key):
     global llm_cache
 
@@ -96,7 +96,7 @@ Question:
 
 
 # --- UI ---
-with gr.Blocks(theme=gr.themes.Soft()) as demo:
+with gr.Blocks() as demo:
     gr.Markdown("# 🤖 PDF RAG Assistant (Groq + LangChain)")
 
     with gr.Row():
@@ -111,9 +111,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 fn=predict,
                 additional_inputs=[api_input],
                 examples=[
-                    "Summarize this document",
-                    "What are the key points?",
-                    "Explain in simple terms"
+                    ["Summarize this document", ""],
+                    ["What are the key points?", ""],
+                    ["Explain in simple terms", ""]
                 ]
             )
 
@@ -123,5 +123,4 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         outputs=[status]
     )
 
-if __name__ == "__main__":
-    demo.launch()
+demo.launch(theme=gr.themes.Soft())
