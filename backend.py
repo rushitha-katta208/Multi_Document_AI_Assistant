@@ -1,77 +1,127 @@
-# src/backend.py
+import gradio as gr
 
+# LangChain imports (kept grouped as requested)
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 
-# Global variables (important)
-vector_store = None
-llm = ChatOllama(model="llama3")
+# --- GLOBAL STATE ---
+app_state = {
+    "vector_store": None
+}
+
+llm_cache = None  # avoid recreating LLM every message
 
 
-# 1️⃣ Load PDF and create vector store
-def load_pdf(pdf_path):
-    global vector_store
+# --- PROCESS PDF ---
+def process_pdf(file, api_key):
+    if not api_key:
+        return "❌ Please enter Groq API Key"
+    if file is None:
+        return "❌ Please upload a PDF"
 
-    # Load PDF
-    loader = PyPDFLoader(pdf_path)
-    docs = loader.load()
+    try:
+        loader = PyPDFLoader(file.name)
+        docs = loader.load()
 
-    # Split into chunks
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,
-        chunk_overlap=50
-    )
-    split_docs = splitter.split_documents(docs)
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=500,
+            chunk_overlap=50
+        )
+        split_docs = splitter.split_documents(docs)
 
-    # Create embeddings
-    embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
+        embeddings = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
+        )
 
-    # Create FAISS vector store
-    vector_store = FAISS.from_documents(split_docs, embeddings)
+        app_state["vector_store"] = FAISS.from_documents(split_docs, embeddings)
 
-    print("✅ PDF processed and vector store created.")
+        return "✅ PDF indexed successfully! You can now chat."
+
+    except Exception as e:
+        return f"⚠ Error: {str(e)}"
 
 
-# 2️⃣ Get Answer (RAG)
-def get_answer(query: str) -> str:
-    global vector_store
+# --- CHAT / PREDICTION ---
+def predict(message, history, api_key):
+    global llm_cache
 
-    if vector_store is None:
-        return "⚠ Please upload a PDF first."
+    if not api_key:
+        return "❌ API Key missing"
 
-    # Retrieve relevant chunks
-    retrieved_docs = vector_store.similarity_search(query, k=4)
-    context_text = "\n\n".join(
-        [doc.page_content for doc in retrieved_docs]
-    )
+    if app_state["vector_store"] is None:
+        return "⚠ Please upload and process a PDF first."
 
-    # Prompt
-    prompt = ChatPromptTemplate.from_template(
-        """You are a helpful assistant.
-Use ONLY the below context to answer.
+    # create LLM once
+    if llm_cache is None:
+        llm_cache = ChatGroq(
+            model="llama3-8b-8192",
+            groq_api_key=api_key
+        )
+
+    # retrieve context
+    docs = app_state["vector_store"].similarity_search(message, k=4)
+    context = "\n\n".join([d.page_content for d in docs])
+
+    # format history
+    history_text = ""
+    for user_msg, bot_msg in history:
+        history_text += f"User: {user_msg}\nAssistant: {bot_msg}\n"
+
+    prompt = ChatPromptTemplate.from_template("""
+You are a helpful assistant. Answer ONLY using the context.
 
 Context:
 {context}
 
+Chat History:
+{history}
+
 Question:
 {question}
+""")
 
-Answer clearly and concisely.
-"""
-    )
+    chain = prompt | llm_cache
 
-    formatted_prompt = prompt.format(
-        context=context_text,
-        question=query
-    )
-
-    # LLM response
-    response = llm.invoke(formatted_prompt)
+    response = chain.invoke({
+        "context": context,
+        "history": history_text,
+        "question": message
+    })
 
     return response.content
+
+
+# --- UI ---
+with gr.Blocks(theme=gr.themes.Soft()) as demo:
+    gr.Markdown("# 🤖 PDF RAG Assistant (Groq + LangChain)")
+
+    with gr.Row():
+        with gr.Column(scale=1):
+            api_input = gr.Textbox(label="Groq API Key", type="password")
+            file_input = gr.File(label="Upload PDF", file_types=[".pdf"])
+            upload_btn = gr.Button("Index PDF")
+            status = gr.Textbox(label="Status", interactive=False)
+
+        with gr.Column(scale=2):
+            chat = gr.ChatInterface(
+                fn=predict,
+                additional_inputs=[api_input],
+                examples=[
+                    "Summarize this document",
+                    "What are the key points?",
+                    "Explain in simple terms"
+                ]
+            )
+
+    upload_btn.click(
+        process_pdf,
+        inputs=[file_input, api_input],
+        outputs=[status]
+    )
+
+if __name__ == "__main__":
+    demo.launch()
